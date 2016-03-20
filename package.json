@@ -3,18 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "nodemon ./bin/www",
+    "build-css": "node-sass --include-path scss scssSource/app.scss public/stylesheet/app.css",
+    "watch-css": "nodemon -e scss -x \"npm run build-css\""
   },
   "dependencies": {
     "async": "^2.0.0-rc.1",
     "body-parser": "~1.13.2",
-    "bourbon-neat": "^1.7.4",
     "cookie-parser": "~1.3.5",
     "debug": "~2.2.0",
     "express": "~4.13.1",
     "jade": "~1.11.0",
     "morgan": "~1.6.1",
-    "node-sass": "^3.4.2",
     "pg": "^4.5.1",
     "raccoon": "^0.2.3",
     "redis": "^2.5.2",
@@ -23,6 +23,11 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
-    "nodemon": "^1.9.1"
+    "bourbon": "^4.2.6",
+    "bourbon-neat": "^1.7.4",
+    "connect": "^3.4.1",
+    "node-sass": "^3.4.2",
+    "nodemon": "^1.9.1",
+    "serve-static": "^1.10.2"
   }
 }
