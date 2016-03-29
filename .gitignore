@@ -1,2 +1,16 @@
 node_modules
 npm-debug.log
+
+secret_stuff/
+
+seeders/temp
+
+notes
+
+.DS_Store
+
+billiam/images/
+
+config/auth.js
+config/database.js
+config/config.json

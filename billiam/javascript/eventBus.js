@@ -2,8 +2,18 @@
 // subscribe: eventBus.on('eventName', callback);
 // emit: eventBus.emit('eventName', data);
 // helper: if there are no listeners to that event, it will console.log
+// NOTE: load this one first in html
 
-var eventBus = (function(){
+// current emitters (manually keeping track, may not be accurate)
+  // 'leftSwipe' + variants
+  // 'imagesRequested', 'append' or 'prepend'
+  // 'tap'
+  // 'renderImgsToPage', photoArray
+
+if (!window.Photon) {
+  window.Photon = {};
+}
+Photon.eventBus = (function(){
   var bus = {};
 
   function emit(eventName, data){
@@ -13,7 +23,7 @@ var eventBus = (function(){
       });
     } else {
       // NOTE this is a helper for debugging, not needed for production
-      console.log('pubsub:', eventName, 'has no subscribers (doesn\'t exist in bus)');
+      console.log('eventBus:', eventName, 'has no subscribers (doesn\'t exist in bus)');
     }
   }
 
@@ -23,14 +33,15 @@ var eventBus = (function(){
   }
 
   // helper for debugging
-  function listEvents(){
+  function listSubscribers(){
     console.log(bus);
   }
 
-  var API = {
-    listEvents: listEvents,
+  // API
+  return {
+    POST: 'status: eventBus is loaded',
+    listSubscribers: listSubscribers,
     emit: emit,
     on: on
   };
-  return API;
 }());

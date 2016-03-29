@@ -5,6 +5,6 @@ var connect = require('connect');
 var serveStatic = require('serve-static');
 
 // public is the directory that it's serving as `/`, default to index.html
-connect().use(serveStatic('billiam')).listen(3000, function(){
-    console.log('billiam folder running on 3000...');
+connect().use(serveStatic('billiam')).listen(4000, function(){
+    console.log('billiam folder running on 4000...');
 });

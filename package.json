@@ -4,22 +4,36 @@
   "private": true,
   "scripts": {
     "start": "nodemon ./bin/www",
-    "build-css": "node-sass --include-path scss billiam/scssSource/app.scss billiam/stylesheet/app.css",
-    "watch-css": "nodemon -e scss -x \"npm run build-css\""
+    "build-css": "node-sass --include-path scss assets/sassy/photon.scss public/stylesheet/photon.css",
+    "watch-css": "nodemon -e scss -x \"npm run build-css\"",
+    "build-css-bulma": "node-sass --include-path sass assets/sassy/bulma.sass public/stylesheet/bulma.css",
+    "watch-css-bulma": "nodemon -e sass -x \"npm run build-css-bulma\""
   },
   "dependencies": {
     "async": "^2.0.0-rc.1",
+    "bcrypt-nodejs": "0.0.3",
     "body-parser": "~1.13.2",
+    "connect-flash": "^0.1.1",
     "cookie-parser": "~1.3.5",
     "debug": "~2.2.0",
+    "ejs": "^2.4.1",
     "express": "~4.13.1",
+    "express-session": "^1.13.0",
+    "faker": "^3.1.0",
     "jade": "~1.11.0",
+    "jquery": "^2.2.2",
     "morgan": "~1.6.1",
+    "passport": "^0.3.2",
+    "passport-facebook": "^2.1.0",
+    "passport-local": "^1.0.0",
     "pg": "^4.5.1",
+    "pg-hstore": "^2.3.2",
     "raccoon": "^0.2.3",
     "redis": "^2.5.2",
+    "request": "^2.69.0",
     "sequelize": "^3.19.3",
     "serve-favicon": "~2.3.0",
+    "split": "^1.0.0",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
