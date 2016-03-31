@@ -20,7 +20,7 @@ module.exports = function(app, passport, raccoon) {
   /* GET recommended photos */
   app.get('/photos/recommended', isLoggedIn, function(req, res) {
     var id = req.user.id;
-    raccoon.recommendFor(id, 5, function(results) {
+    raccoon.recommendFor(id, 500, function(results) {
       console.log(results);
       models.photo.findAll({ where: { id: { in: results }}}).then(addPhotos).then(function(user_photos) {
         res.json(user_photos);
@@ -60,7 +60,9 @@ module.exports = function(app, passport, raccoon) {
       height: req.body.height,
       width: req.body.width
     }}).spread(function(photo, created) {
-      seedTag(photo);
+      if (created) {
+        seedTag(photo);
+      }
       models.user.findById(req.body.user_id).then(function(user) {
         user.addLike(photo);
         user.addAdd(photo);
