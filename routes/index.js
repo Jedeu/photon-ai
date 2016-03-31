@@ -20,7 +20,7 @@ module.exports = function(app, passport, raccoon) {
   /* GET recommended photos */
   app.get('/photos/recommended', isLoggedIn, function(req, res) {
     var id = req.user.id;
-    raccoon.recommendFor(id, 5, function(results) {
+    raccoon.recommendFor(id, 500, function(results) {
       console.log(results);
       models.photo.findAll({ where: { id: { in: results }}}).then(addPhotos).then(function(user_photos) {
         res.json(user_photos);

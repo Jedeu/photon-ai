@@ -50,6 +50,11 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
     sendPhotosToView(somePhotos, direction);
   });
 
+  pubsub.on('recPhotosRequested', function(direction){
+    var someRecPhotos = getRecPhotosFrom(currentUser, photoQtyPerRender);
+    sendPhotosToView(somePhotos, direction);
+  });
+
   pubsub.on('userLoggedIn', function(){
     currentUser = new User();
     setCookie('loggedIn', 'true');
@@ -117,7 +122,9 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   pubsub.on('userPhotosFetched', function(){
     pubsub.emit('photosRequested', 'append');
   });
-
+  pubsub.on('recPhotosFetched', function(){
+    pubsub.emit('recPhotosRequested', 'append');
+  });
   // USER CONTROLLER ///////////////////////////////////////
 
   //////////////////////////////////////////////////////////
@@ -143,15 +150,16 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
       .done(function(data){
         if (data.length === 0) {
           console.log('fetchRecPhotos: rec array is empty');
-          return false;
-        }
+        } else {
         // NOTE: currently server returns an array, not JSON
-        var photonImgs = [];
-        data.forEach(function(ele, i, arr){
-          photonImgs.push(new Photo(ele, true));
-        });
-        userObj.setRecPhotos(photonImgs);
-
+          var photonImgs = [];
+          data.forEach(function(ele, i, arr){
+            photonImgs.push(new Photo(ele, true));
+          });
+          userObj.setRecPhotos(photonImgs);
+        }
+        // pubsub.emit('recPhotosFetched', userObj.photos.length);
+        
         // now get liked photos
         $.getJSON(serverURL + 'photos')
           .done(function(data){
@@ -162,7 +170,7 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
             });
             userObj.setPhotos(photonImgs);
             // now render all the photos
-            pubsub.emit('userPhotosFetched', (userObj.photos.length + userObj.recPhotos.length));
+            pubsub.emit('userPhotosFetched', userObj.photos.length);
           })
           .fail(function(xhr, status, error){
             console.log(status, error);
