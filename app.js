@@ -30,6 +30,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions
 app.use(flash()); // use connect-flash for flash messages stored in session
+
+raccoon.config.className = 'photo';
 raccoon.connect(6379, '127.0.0.1')
 
 // routes

@@ -10,9 +10,16 @@
   // 'tap'
   // 'renderImgsToPage', photoObject (.photos, .direction)
   // 'userLoggedIn', null
+  // 'noUserLoggedIn', null
   // 'userPhotosFetched', qty
+  // 'recPhotosFetched', qty
   // 'searchRequested', string
   // 'nukePhotosFromView', ('all', or array of photo URLs to delete)
+  // 'allPhotosNuked', true
+  // 'somePhotosNuked', qty
+  // 'recBtnClicked', $btn
+  // 'recRegistered', $btn
+  // 'unlikeBtnClicked', $btn
 
 if (!window.Photon) {
   window.Photon = {};

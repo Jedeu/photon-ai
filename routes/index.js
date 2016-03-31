@@ -20,7 +20,8 @@ module.exports = function(app, passport, raccoon) {
   /* GET recommended photos */
   app.get('/photos/recommended', isLoggedIn, function(req, res) {
     var id = req.user.id;
-    raccoon.recommendFor(id, '2', function(results) {
+    raccoon.recommendFor(id, 5, function(results) {
+      console.log(results);
       models.photo.findAll({ where: { id: { in: results }}}).then(addPhotos).then(function(user_photos) {
         res.json(user_photos);
       });
@@ -70,11 +71,13 @@ module.exports = function(app, passport, raccoon) {
   });
 
   /* POST new liked photo (from web app) */
-  app.post('/likedphotos', function(req, res) {
-    var id = req.body.photo_id;
+  app.post('/likedphotos/:id', function(req, res) {
+    var id = req.params.id;
     models.photo.findById(id).then(function(photo) {
-      photo.addLiker(req.user);
-      raccoon.liked(req.user.id, photo.id, function() {});
+      models.user.findById(req.user.id).then(function(user) {
+        user.addLike(photo);
+        raccoon.liked(req.user.id, photo.id, function() { res.json('success') });
+      });
     });
   });
 
@@ -82,7 +85,10 @@ module.exports = function(app, passport, raccoon) {
   app.delete('/likedphotos/:id', function(req, res) {
     var id = req.params.id;
     models.photo.findById(id).then(function(photo) {
-      photo.removeLiker(req.user);
+      models.user.findById(req.user.id).then(function(user) {
+        user.removeLike(photo);
+        raccoon.disliked(req.user.id, id, function() { res.json('success') });
+      });
     });
   });
 
@@ -249,7 +255,7 @@ var visionRequest = {
         },
         {
           "type": "FACE_DETECTION",
-          "maxResults": 3
+          "maxResults": 5
         },
         {
           "type": "LANDMARK_DETECTION",
@@ -302,6 +308,30 @@ function seedTag(photo) {
     var tags = [];
     var landmarks = body.responses[0].landmarkAnnotations;
     var labels = body.responses[0].labelAnnotations;
+
+    var faceAnnotations = body.responses[0].faceAnnotations;
+
+    // 
+    if (faceAnnotations && faceAnnotations[0]) {
+      // console.log('\n\n\n' + faceAnnotations[0].joyLikelihood + '\n\n\n');
+      if (faceAnnotations[0].joyLikelihood == 'VERY_LIKELY' || faceAnnotations[0].joyLikelihood == 'LIKELY') {
+        console.log('\n\n HAPPY \n\n');
+        tags.push({ name: 'happy', type: 'emotion' });
+      }
+      if (faceAnnotations[0].sorrowLikelihood == 'VERY_LIKELY' || faceAnnotations[0].sorrowLikelihood == 'LIKELY') {
+        console.log('\n\n SAD \n\n');
+        tags.push({ name: 'sad', type: 'emotion' });
+      }
+      if (faceAnnotations[0].angerLikelihood == 'VERY_LIKELY' || faceAnnotations[0].angerLikelihood == 'LIKELY') {
+        console.log('\n\n ANGRY \n\n');
+        tags.push({ name: 'angry', type: 'emotion' });
+      }
+      if (faceAnnotations[0].surpriseLikelihood == 'VERY_LIKELY' || faceAnnotations[0].surpriseLikelihood == 'LIKELY') {
+        console.log('\n\n SURPRISED \n\n');
+        tags.push({ name: 'surprised', type: 'emotion' });
+      }
+    }
+
     if (labels) {
       labels.forEach(function(label) {
         if (label.score >= MIN_LABEL_SCORE) {
@@ -309,6 +339,7 @@ function seedTag(photo) {
         }
       });
     }
+
     if (landmarks) {
       landmarks.forEach(function(landmark) {
         tags.push({ name: landmark.description, type: 'landmark' });

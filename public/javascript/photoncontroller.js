@@ -33,62 +33,92 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   //////////////////////////////////////////////////////////
   // config important variables
   var serverURL = '/';
-  var photoQtyPerRender = 4;
+  var photoQtyPerRender = 96;
   var currentUser = null;
   // EVENT LISTENERS ///////////////////////////////////////
 
   //////////////////////////////////////////////////////////
   // from view (API via pubsub)
-  pubsub.on('imagesRequested', function(direction){
+  pubsub.on('photosRequested', function(direction){
     var somePhotos = getPhotosFrom(currentUser, photoQtyPerRender);
     sendPhotosToView(somePhotos, direction);
+  });
+  pubsub.on('recPhotosRequested', function(direction){
+    var someRecPhotos = getRecPhotosFrom(currentUser, photoQtyPerRender);
+    sendPhotosToView(someRecPhotos, direction);
   });
 
   pubsub.on('userLoggedIn', function(){
     currentUser = new User();
+    sessionStorage.setItem('loggedIn', 'true');
     fetchPhotosFor(currentUser);
   });
+
+  pubsub.on('noUserLoggedIn', function(){
+    sessionStorage.setItem('loggedIn', 'false');
+    fetchShowTopPhotos();
+  });
+
   pubsub.on('searchRequested', function(query){
-    // sanitise input
     var queryArr = sanitise(query);
-    // find matching photos from user
-      // currentUser.photos.tags is an array
     var foundPhotos = tagSearch(queryArr);
-    // ask view to remove images
     pubsub.emit('nukePhotosFromView', 'all');
-    // on remove, update state logger (pubsub event triggered)
     for (var key in photoStates){
       photoStates[key] = 'removed';
     }
     foundPhotos.forEach(function(ele, i, arr){
       registerPhotoState(ele.id);
     });
-    // render matching images to view
     sendPhotosToView(foundPhotos, 'prepend');
   });
 
+  pubsub.on('recBtnClicked', function($btn){
+    var photoID = $btn.closest('.photonRec').data('id');
+    var payload = {
+      photo: photoID
+    };
+    $.ajax({
+      url: serverURL + 'likedphotos/' + photoID,
+      method: 'POST'
+    }).done(function(data, status, xhr){
+        console.log('rec controller:', status);
+        pubsub.emit('recRegistered', $btn);
+    }).fail(function(xhr, status, error){
+      console.log(status);
+      console.log(error);
+    });
+  });
+
+  pubsub.on('unlikeBtnClicked', function($btn){
+    var photoID = $btn.closest('.nestBox').data('id');
+    var payload = {
+      photo: photoID
+    };
+    $.ajax({
+      url: serverURL + 'likedphotos/' + photoID,
+      method: 'DELETE'
+    }).done(function(data, status, xhr){
+        console.log('unlike controller:', status);
+        pubsub.emit('unlikeRegistered', $btn);
+    }).fail(function(xhr, status, error){
+      console.log(status);
+      console.log(error);
+    });
+  });
+
+
+
+  //////////////////////////////////////////////////////////
+  // auto loading images upon photo fetch, which is automatic upon user login
+  pubsub.on('userPhotosFetched', function(){
+    pubsub.emit('photosRequested', 'append');
+  });
+  pubsub.on('recPhotosFetched', function(){
+    pubsub.emit('recPhotosRequested', 'append');
+  });
+
+
   // USER CONTROLLER ///////////////////////////////////////
-
-  //////////////////////////////////////////////////////////
-  // cookies // NOTE: untested
-  function setUserIDCookie(userObj){
-    if (userObj){
-      document.cookie = 'userID=' + userObj.id;
-      return true;
-    }
-    console.log('setUserIDCookie: userObj missing');
-    return false;
-  }
-  function getUserIDCookie(){
-    return document.cookie.replace(/(?:(?:^|.*;\s*)userID\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-  }
-  function removeUserIDCookie(){
-    document.cookie = 'userID=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    return true;
-  }
-
-  //////////////////////////////////////////////////////////
-  // user login and create user object
 
 
   //////////////////////////////////////////////////////////
@@ -103,15 +133,45 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
       });
       userObj.setPhotos(photonImgs);
       pubsub.emit('userPhotosFetched', userObj.photos.length);
-      return true;
     })
     .fail(function(xhr, status, error){
       console.log(status, error);
-      return false;
+    });
+    $.getJSON(serverURL + 'photos/recommended')
+    .done(function(data){
+      if (data.length === 0) {
+        console.log('fetchRecPhotos: rec array is empty');
+        return false;
+      }
+      // NOTE: currently server returns an array, not JSON
+      var photonImgs = [];
+      data.forEach(function(ele, i, arr){
+        photonImgs.push(new Photo(ele, true));
+      });
+      userObj.setRecPhotos(photonImgs);
+      pubsub.emit('recPhotosFetched', userObj.recPhotos.length);
+    })
+    .fail(function(xhr, status, error){
+      console.log(status, error);
     });
   }
 
-  function fetchRandPhotos(){} // TODO
+  function fetchShowTopPhotos(){
+    $.getJSON(serverURL + 'photos/top_rated')
+    .done(function(data){
+      // NOTE: currently server returns an array, not JSON
+      var photonImgs = [];
+      data.forEach(function(ele, i, arr){
+        photonImgs.push(new Photo(ele));
+      });
+      photonImgs.sort( function() { return 0.5 - Math.random(); } );
+      var payload = photonImgs.slice(0, photoQtyPerRender);
+      sendPhotosToView(payload, 'append');
+    })
+    .fail(function(xhr, status, error){
+      console.log(status, error);
+    });
+  }
 
   //////////////////////////////////////////////////////////
   // load user photos from user
@@ -119,6 +179,9 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
     var outputQty = qty;
     var photoArray = [];
     for (var i = 0; i < outputQty; i++){
+      // shuffles array to get random photos each time
+      // http://stackoverflow.com/questions/7158654/how-to-get-random-elements-from-an-array
+      userObj.photos.sort( function() { return 0.5 - Math.random(); } );
       var aPhoto = userObj.photos[i];
       if (aPhoto === undefined){
         console.log('getPhotosFrom: no more user photos to load');
@@ -131,7 +194,32 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
         registerPhotoState(aPhoto.id);
       }
     }
-    console.log('loaded qty:', photoArray.length);
+    console.log('usr photo loaded qty:', photoArray.length);
+    return photoArray;
+  }
+
+  //////////////////////////////////////////////////////////
+  // load recommended user photos from user
+  function getRecPhotosFrom(userObj, qty){
+    var outputQty = qty;
+    var photoArray = [];
+    for (var i = 0; i < outputQty; i++){
+      // shuffles array to get random photos each time
+      // http://stackoverflow.com/questions/7158654/how-to-get-random-elements-from-an-array
+      userObj.recPhotos.sort( function() { return 0.5 - Math.random(); } );
+      var aPhoto = userObj.recPhotos[i];
+      if (aPhoto === undefined){
+        console.log('getRecPhotosFrom: no more rec photos to load');
+        // TODO: maybe emit an event for frontend
+        outputQty = 0;
+      } else if (isPhotoAlreadyLoaded(aPhoto.id)){
+        outputQty++;
+      } else {
+        photoArray.push(aPhoto);
+        registerPhotoState(aPhoto.id);
+      }
+    }
+    console.log('rec photos loaded qty:', photoArray.length);
     return photoArray;
   }
 
@@ -146,31 +234,6 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
     returnObj.direction = direction;
     pubsub.emit('renderImgsToPage', returnObj);
   }
-
-  //////////////////////////////////////////////////////////
-  // loading callback TODO: found this on StackOverflow
-  // function preloadImage(imgObj, callback){
-  //   var objImagePreloader = new Image();
-  //   objImagePreloader.src = imgObj.url;
-  //   if (objImagePreloader.complete){
-  //     callback();
-  //     objImagePreloader.onload=function(){};
-  //   }
-  //   else{
-  //     objImagePreloader.onload = function() {
-  //       callback();
-  //       //    clear onLoad, IE behaves irratically with animated gifs otherwise
-  //       objImagePreloader.onload=function(){};
-  //     };
-  //   }
-  // }
-
-
-  // STORAGE CONTROLLER ////////////////////////////////////
-
-  //////////////////////////////////////////////////////////
-  //
-
 
   // STATE LOGGER //////////////////////////////////////////
 
@@ -232,15 +295,16 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   function tagSearch(termsArr){
     var matchedPhotos = [];
     currentUser.photos.forEach(function(ele, i, arr){
-      var allLabels = ele.tags.concat(ele.landmarks);
+      var allLabels = ele.tags.concat(ele.landmarks.concat(ele.emotions));
+      loop1:
       for (var j = 0; j < allLabels.length; j++){
         var haystack = allLabels[j].toLowerCase();
+        loop2:
         for (var k = 0; k < termsArr.length; k++){
           var needle = termsArr[k].toLowerCase();
           if (fuzzySearch(needle, haystack)) {
             matchedPhotos.push(ele);
-            j = Infinity; // breaks parent loop without setting a flag
-            break;
+            break loop1;
           }
         }
       }
@@ -282,6 +346,7 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   // API
   return {
     currentUser: currentUser,
-    reportStates: reportStates
+    reportStates: reportStates,
+    sendPhotosToView: sendPhotosToView
   };
 }(Photon.eventBus, Photon.view, Photon.User, Photon.Photo));

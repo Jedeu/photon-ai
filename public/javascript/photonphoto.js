@@ -3,22 +3,20 @@ if (!window.Photon) {
   window.Photon = {};
 }
 
-Photon.Photo = function(imgObj){
+Photon.Photo = function(imgObj, recBoolean){
   // width x height, then add img URL w/o http(s), ex: 'images.unsplash.com/photo-1431051047106-f1e17d81042f'
   var monicasResizer = 'http://104.131.96.71/unsafe/fit-in/' + '800x4000/';
-  if (!imgObj.tags.length){
-    console.log('Photo: has no tags:', imgObj);
-  }
   var imgID = imgObj.id;
   var imgURL = imgObj.url;
   var imgSmallURL = imgObj.smallurl || null;
   var imgTags = null;
   var imgLandmarks = null;
-  var imgPeople = null;
-  var imgSafesearch = null;
+  var imgEmotions = null;
+  // var imgSafesearch = null;
   var imgWidth = imgObj.width || null;
   var imgHeight = imgObj.height || null;
-  // below is exporting of private vars
+  var imgRec = recBoolean || false;
+
   this.id = imgID;
   this.url = imgURL;
   this.smallURL = (function(){
@@ -33,8 +31,8 @@ Photon.Photo = function(imgObj){
   (function parseTags(tagsArr){
     var allTags = [];
     var allLandmarks = [];
-    var allPeople = [];
-    var allSafeSearch = [];
+    var allEmotions = [];
+    // var allSafeSearch = [];
     tagsArr.forEach(function(ele, i, arr){
       switch(ele.type){
         case 'label':
@@ -43,24 +41,25 @@ Photon.Photo = function(imgObj){
         case 'landmark':
           allLandmarks.push(ele.name);
           break;
-        case 'people':
-          // TODO: build
+        case 'emotion':
+          allEmotions.push(ele.name);
           break;
-        case 'safesearch':
-          // TODO: build
-          break;
+        // case 'safesearch':
+        //   // TODO: build
+        //   break;
       }
     });
     imgTags = allTags;
     imgLandmarks = allLandmarks;
-    imgPeople = allPeople;
-    imgSafesearch = allSafeSearch;
+    imgEmotions = allEmotions;
+    // imgSafesearch = allSafeSearch;
   }(imgObj.tags));
 
   this.tags = imgTags;
   this.landmarks = imgLandmarks;
-  this.people = imgPeople;
-  this.safesearch = imgSafesearch;
+  this.emotions = imgEmotions;
+  // this.safesearch = imgSafesearch;
+  this.isRec = imgRec;
 };
 
 // NOTE: this is not needed for production

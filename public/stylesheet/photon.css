@@ -122,6 +122,30 @@ menu.pMenu {
     #popupBox .modal-content .image-custom img {
       max-height: 85vh; }
 
+.photonRec {
+  opacity: 0.5;
+  box-shadow: inset 0px 10px 30px 0px rgba(50, 50, 50, 0.4) !important; }
+  .photonRec .overlay {
+    position: relative;
+    height: 100%;
+    width: 100%; }
+    .photonRec .overlay .button {
+      position: absolute;
+      top: 5px;
+      right: 5px; }
+
+.photonLiked .overlay {
+  position: relative;
+  height: 100%;
+  width: 100%; }
+  .photonLiked .overlay .button {
+    opacity: 0.3;
+    position: absolute;
+    top: 5px;
+    right: 5px; }
+    .photonLiked .overlay .button:hover {
+      opacity: 1; }
+
 .layer-neg-3 {
   z-index: -3; }
 

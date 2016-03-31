@@ -76,21 +76,37 @@ Photon.view = (function(pubsub){
     return output;
   }
 
-  function convertImgToNest (imgObj){
+  function addUnlikeButtonTo($target){
+    // target must be the nestBox container div
+    var $payload = $('<button>').addClass('button is-small is-outlined').text('X');
+    $target.find('.overlay').append($payload);
+  }
+
+  function convertImgToNest(imgObj){
     var gridSpec = gridFitter(imgObj.width, imgObj.height);
     if (!gridSpec) {
       return null;
     }
     var smallerLink = imgObj.smallURL || imgObj.url;
     var styleStr = 'background:url(' + smallerLink + ') no-repeat center center;' + gridSpec.css;
-    var landmarkStr = imgObj.landmarks;
     var nestClass = 'size' + gridSpec.col + gridSpec.row;
+    // var nestClass = 'size32';
     var $imgElement = $('<div>').addClass('nestBox has-shadow').addClass(nestClass);
+    if (imgObj.isRec){
+      $imgElement.addClass('photonRec');
+      var $payload = $('<div>').addClass('overlay');
+      var $payloadHorse = $('<button>').addClass('button is-primary').text('+');
+      $payload.append($payloadHorse);
+      $imgElement.append($payload);
+    } else {
+      $imgElement.addClass('photonLiked');
+    }
     $imgElement.attr('style', styleStr);
+    $imgElement.attr('data-id', imgObj.id);
     $imgElement.attr('data-tags', imgObj.tags);
     $imgElement.attr('data-landmarks', imgObj.landmarks);
-    $imgElement.attr('data-people', imgObj.people);
-    $imgElement.attr('data-safesearch', imgObj.safesearch);
+    $imgElement.attr('data-emotions', imgObj.emotions);
+    // $imgElement.attr('data-safesearch', imgObj.safesearch);
     $imgElement.attr('data-large-url', imgObj.url);
     return $imgElement;
   }
@@ -107,7 +123,8 @@ Photon.view = (function(pubsub){
     }
   }
 
-  function renderNestSingleImage(imgObj, $target, direction){
+  function renderNestSingleImage(imgObj, direction){
+    var $target = $('#nestContainer');
     var imgArr = [];
     imgArr.push(convertImgToNest(imgObj));
     if (direction == 'prepend') {
@@ -155,10 +172,12 @@ Photon.view = (function(pubsub){
     $menuBar = $('menu'),
     $menuToggle = $('.pMenuToggle'),
     $menuToggleBtn = $('#menuToggleBtn'),
-    $searchBtn = $('#searchBtn'),
+    $searchGroup = $('#searchGroup'),
+    $searchInput = $searchGroup.find('input.input'),
+    $searchBtn = $searchGroup.find('.button'),
     $statsLiked = $('#statsLiked'),
-    $statsDiscovered = $('statsDiscovered'),
-    $statsTotal = $('statsTotal'),
+    $statsDiscovered = $('#statsDiscovered'),
+    $statsDisplaying = $('#statsDisplaying'),
     $window = $(window);
     var nestOptions = {
       minWidth: calcNestColWidth(),
@@ -180,7 +199,7 @@ Photon.view = (function(pubsub){
     function calcNestColWidth(){
       var windowWidth = $window.width();
       if (windowWidth > 960) {
-        return windowWidth / 10;
+        return windowWidth / 14;
       } else if (windowWidth < 768) {
         return windowWidth / 4;
       } else {
@@ -192,6 +211,12 @@ Photon.view = (function(pubsub){
     // server-side auth, duct tape fix for login
     if (document.getElementById("logoutBtn")) {
       pubsub.emit('userLoggedIn', null);
+    }
+    if (document.getElementById("loginBtn")) {
+      pubsub.emit('noUserLoggedIn', null);
+      $searchGroup.hide();
+      $statsLiked.hide();
+      $statsDiscovered.hide();
     }
 
     //////////////////////////////////////////////////////////
@@ -206,10 +231,9 @@ Photon.view = (function(pubsub){
     pubsub.on('userPhotosFetched', function(qty){
       updateNavStats($statsLiked, qty);
     });
-    // NOTE: template for discovered(recommended) and database total
-    // pubsub.on('userPhotosFetched', function(qty){
-    //   updateNavStats($statsDiscovered, qty);
-    // });
+    pubsub.on('recPhotosFetched', function(qty){
+      updateNavStats($statsDiscovered, 0); //initialise for this session
+    });
     pubsub.on('nukePhotosFromView', function(commandOrArr){
       switch (typeof(commandOrArr)) {
       case 'string':
@@ -232,6 +256,38 @@ Photon.view = (function(pubsub){
       $target.children('.title').text(qty);
     }
 
+    pubsub.on('renderImgsToPage', function(photosObj){
+      var currentVal = $nestContainer.children('.nestBox').length;
+      updateNavStats($statsDisplaying, currentVal);
+    });
+
+    pubsub.on('allPhotosNuked', function(boolean){
+      if (boolean){
+        updateNavStats($statsDisplaying, 0);
+      }
+    });
+
+    pubsub.on('somePhotosNuked', function(qty){
+      var current = +$statsDisplaying.find('.title').text();
+      var newVal = current - qty;
+      updateNavStats($statsDisplaying, newVal);
+    });
+
+    pubsub.on('recRegistered', function(){
+      var prevLiked = +$statsLiked.find('.title').text();
+      prevLiked++;
+      updateNavStats($statsLiked, prevLiked); //initialise for this session
+      var prevDiscov = +$statsDiscovered.find('.title').text();
+      prevDiscov++;
+      updateNavStats($statsDiscovered, prevDiscov); //initialise for this session
+    });
+
+    pubsub.on('unlikeRegistered', function(){
+      var current = +$statsLiked.find('.title').text();
+      var newVal = current - 1;
+      updateNavStats($statsLiked, newVal);
+    });
+
     //////////////////////////////////////////////////////////
     // buttons during development
     $('#nestPrepend').click(function(){
@@ -252,10 +308,10 @@ Photon.view = (function(pubsub){
       renderNestImages(samplePhotosObj, $nestContainer);
     });
     $('#imgPrepend').on('click', function(){
-      pubsub.emit('imagesRequested', 'prepend');
+      pubsub.emit('photosRequested', 'prepend');
     });
     $('#imgAppend').on('click', function(){
-      pubsub.emit('imagesRequested', 'append');
+      pubsub.emit('photosRequested', 'append');
     });
 
 
@@ -295,7 +351,10 @@ Photon.view = (function(pubsub){
     function nukeAllPhotos(){
       $nestContainer.children().remove();
       $nestContainer.nested('refresh', nestOptions);
+      pubsub.emit('allPhotosNuked', true);
     }
+
+    // TODO
     function nukeSelectedPhotos(arrayOfURLs){
 
     }
@@ -316,18 +375,96 @@ Photon.view = (function(pubsub){
     });
 
     //////////////////////////////////////////////////////////
+    // recommended photos manipulation
+    // $nestContainer.on('mouseenter', '.photonRec', function(enterEvt){
+    //   if ($(this).children('.overlay').length === 0) {
+    //     var $payload = $('<div>').addClass('overlay');
+    //     var $payloadHorse = $('<button>').addClass('button is-warning').text('+');
+    //     $payload.append($payloadHorse);
+    //     $(this).append($payload);
+    //   }
+    // });
+    //
+    // $nestContainer.on('mouseenter', '.photonRec', function(leaveEvt){
+    //   $(this).find('.overlay').show();
+    // });
+    //
+    // $nestContainer.on('mouseleave', '.photonRec', function(leaveEvt){
+    //   $(this).find('.overlay').hide();
+    // });
+
+    // the rec photo is tied to the '.is-primary' class, also makes it turquoise
+    $nestContainer.on('click', '.is-primary', function(evt){
+      evt.stopPropagation();
+      $btn = $(this);
+      $btn.addClass('is-loading');
+      pubsub.emit('recBtnClicked', $btn); // controller subscribes
+    });
+
+    pubsub.on('recRegistered', function($btn){
+      $parent = $btn.closest('.nestBox');
+      $btn.removeClass('is-primary').removeClass('is-loading').addClass('is-success').text('added');
+      $btn.prop('disabled', true);
+      setTimeout(function(){
+        $btn.remove();
+        $parent.addClass('photonLiked').removeClass('photonRec');
+        addUnlikeButtonTo($parent);
+      }, 800);
+    });
+
+    //////////////////////////////////////////////////////////
+    // photo unliking
+    $nestContainer.on('mouseenter', '.photonLiked', function(enterEvt){
+      if (sessionStorage.getItem('loggedIn') !== 'true'){
+        return;
+      }
+      if ($(this).children('.overlay').length === 0) {
+        var $payload = $('<div>').addClass('overlay');
+        var $payloadHorse = $('<button>').addClass('button is-small is-outlined').text('X');
+        $payload.append($payloadHorse);
+        $(this).append($payload);
+      }
+    });
+
+    $nestContainer.on('mouseenter', ".nestBox:not('.photonRec')", function(evt){
+      $(this).find('.overlay').show();
+    });
+
+    $nestContainer.on('mouseleave', ".nestBox:not('.photonRec')", function(evt){
+      $(this).find('.overlay').hide();
+    });
+
+    // the unlike button is tied to the '.is-small' class
+    $nestContainer.on('click', '.is-small', function(evt){
+      evt.stopPropagation();
+      $btn = $(this);
+      $btn.addClass('is-loading');
+      pubsub.emit('unlikeBtnClicked', $btn); // controller subs
+    });
+
+    pubsub.on('unlikeRegistered', function($btn){
+      $btn.removeClass('is-loading').addClass('is-success').text('unlike');
+      $btn.prop('disabled', true);
+      setTimeout(function(){
+        $btn.closest('.nestBox').remove();
+        pubsub.emit('somePhotosNuked', 1);
+        $nestContainer.nested('refresh', nestOptions);
+      }, 800);
+    });
+
+    //////////////////////////////////////////////////////////
     // nestBox pictures Modal
     $nestContainer.on('click', '.nestBox', function(){
       var url = $(this).data('large-url');
       var tags = $(this).data('tags');
       var landmarks = $(this).data('landmarks');
-      // var people = $(this).data('people');
+      var emotions = $(this).data('emotions');
       // var safesearch = $(this).data('safesearch');
       var $tagField = $popupBox.find('div.image-custom');
       $tagField.children().remove();
       renderTagsTo(tags, $tagField, 'blue');
       renderTagsTo(landmarks, $tagField, 'yellow');
-      // renderTagsTo(people, $tagField, 'green');
+      renderTagsTo(emotions, $tagField, 'green');
       // renderTagsTo(safesearch, $tagField, 'red');
       $popupBox.find('img').attr('src', url);
       $popupBox.addClass('is-active');
@@ -338,11 +475,31 @@ Photon.view = (function(pubsub){
 
     //////////////////////////////////////////////////////////
     // search
-    $searchBtn.on('click', function(){
-      var $inputBox = $searchBtn.closest('p.control').find('input.input');
-      var text = $inputBox.val();
+    function fireSearchRequest(){
+      var text = $searchInput.val();
+      console.log(text);
       pubsub.emit('searchRequested', text);
-      $inputBox.val('');
+      $searchInput.val('');
+    }
+
+    $searchBtn.on('click', function(){
+      fireSearchRequest();
+    });
+
+    $searchInput.on('keypress', function(evt){
+      if (evt.keyCode == 13){
+        fireSearchRequest();
+      }
+    });
+
+    $searchInput.on('blur', function(evt){
+      fireSearchRequest();
+    });
+
+    // NOTE: not disabling. Prevent search for non users
+    pubsub.on('noUserLoggedIn', function(){
+      $searchInput.prop('disabled', true);
+      $searchBtn.prop('disabled', true);
     });
 
     //////////////////////////////////////////////////////////
