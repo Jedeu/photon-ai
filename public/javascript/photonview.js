@@ -5,22 +5,22 @@ if (!window.Photon) {
 
 Photon.view = (function(pubsub){
 
-  //////////////////////////////////////////////////////////
-  // helpers while building
-  function makeBoxes() {
-    var boxes = [],
-    count = Math.random()*15;
-    if (count < 5) count = 5;
-    for (var i=0; i < count; i++ ) {
-      var box = document.createElement('div');
-      box.className = 'nestBox has-shadow is-loading size' +  Math.ceil( Math.random()*3 ) +  Math.ceil( Math.random()*3 );
-      box.setAttribute('data-large-url', 'http://placehold.it/1200x800');
-      box.setAttribute('data-tags', 'tag1,tag2,tag3,tag4,tag5,tag6');
-      // add box DOM node to array of new elements
-      boxes.push( box );
-    }
-    return boxes;
-  }
+  // //////////////////////////////////////////////////////////
+  // // helpers while building
+  // function makeBoxes() {
+  //   var boxes = [],
+  //   count = Math.random()*15;
+  //   if (count < 5) count = 5;
+  //   for (var i=0; i < count; i++ ) {
+  //     var box = document.createElement('div');
+  //     box.className = 'nestBox has-shadow is-loading size' +  Math.ceil( Math.random()*3 ) +  Math.ceil( Math.random()*3 );
+  //     box.setAttribute('data-large-url', 'http://placehold.it/1200x800');
+  //     box.setAttribute('data-tags', 'tag1,tag2,tag3,tag4,tag5,tag6');
+  //     // add box DOM node to array of new elements
+  //     boxes.push( box );
+  //   }
+  //   return boxes;
+  // }
 
   var gridDict = {
     // example
@@ -199,7 +199,7 @@ Photon.view = (function(pubsub){
     };
     function calcNestColWidth(){
       var windowWidth = $window.width();
-      if (windowWidth > 960) {
+      if (windowWidth > 1024) {
         return windowWidth / 14;
       } else if (windowWidth < 768) {
         return windowWidth / 4;
@@ -289,32 +289,34 @@ Photon.view = (function(pubsub){
       updateNavStats($statsLiked, newVal);
     });
 
-    //////////////////////////////////////////////////////////
-    // buttons during development
-    $('#nestPrepend').click(function(){
-      var boxes = makeBoxes();
-      $nestContainer.prepend(boxes).nested('prepend',boxes);
-    });
-    $('#nestAppend').click(function(){
-      var boxes = makeBoxes();
-      $nestContainer.append(boxes).nested('append',boxes);
-    });
-    $('#nestNuke').click(function(){
-      nukeAllPhotos();
-    });
-    $('#testPrepend').on('click', function(){
-      renderNestImages(samplePhotosObj, $nestContainer, 'prepend');
-    });
-    $('#testAppend').on('click', function(){
-      renderNestImages(samplePhotosObj, $nestContainer);
-    });
-    $('#imgPrepend').on('click', function(){
-      pubsub.emit('photosRequested', 'prepend');
-    });
-    $('#imgAppend').on('click', function(){
-      pubsub.emit('photosRequested', 'append');
-    });
 
+    // NOTE: PENDING DELETION FOR PRODUCTION
+    // //////////////////////////////////////////////////////////
+    // // buttons during development
+    // $('#nestPrepend').click(function(){
+    //   var boxes = makeBoxes();
+    //   $nestContainer.prepend(boxes).nested('prepend',boxes);
+    // });
+    // $('#nestAppend').click(function(){
+    //   var boxes = makeBoxes();
+    //   $nestContainer.append(boxes).nested('append',boxes);
+    // });
+    // $('#nestNuke').click(function(){
+    //   nukeAllPhotos();
+    // });
+    // $('#testPrepend').on('click', function(){
+    //   renderNestImages(samplePhotosObj, $nestContainer, 'prepend');
+    // });
+    // $('#testAppend').on('click', function(){
+    //   renderNestImages(samplePhotosObj, $nestContainer);
+    // });
+    // $('#imgPrepend').on('click', function(){
+    //   pubsub.emit('photosRequested', 'prepend');
+    // });
+    // $('#imgAppend').on('click', function(){
+    //   pubsub.emit('photosRequested', 'append');
+    // });
+    //
 
     //////////////////////////////////////////////////////////
     // toggle entire page menu slide
@@ -413,10 +415,16 @@ Photon.view = (function(pubsub){
       }, 800);
     });
 
+    function getCookie(key){
+      var regexStr = '/(?:(?:^|.*;\s*)' + key + '\s*\=\s*([^;]*).*$)|^.*$/';
+      return document.cookie.replace(regexStr, "$1");
+    }
+
     //////////////////////////////////////////////////////////
     // photo unliking
     $nestContainer.on('mouseenter', '.photonLiked', function(enterEvt){
-      if (sessionStorage.getItem('loggedIn') !== 'true'){
+      var isLoggedIn = getCookie('loggedIn');
+      if (isLoggedIn !== 'loggedIn=true'){
         return;
       }
       if ($(this).children('.overlay').length === 0) {
@@ -507,7 +515,7 @@ Photon.view = (function(pubsub){
     $refreshBtn.on('click', function(evt){
       pubsub.emit('nukePhotosFromView', 'all');
       pubsub.emit('photosRequested', 'append');
-      pubsub.emit('recPhotosRequested', 'prepend');
+      // pubsub.emit('recPhotosRequested', 'prepend');
     });
 
 

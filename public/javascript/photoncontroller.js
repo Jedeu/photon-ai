@@ -41,21 +41,29 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   // from view (API via pubsub)
   pubsub.on('photosRequested', function(direction){
     var somePhotos = getPhotosFrom(currentUser, photoQtyPerRender);
+    var someRecPhotos = getRecPhotosFrom(currentUser, photoQtyPerRender);
+    someRecPhotos.forEach(function(photo) {
+      somePhotos.push(photo);
+    });
+    somePhotos.sort( function() { return 0.5 - Math.random(); } );
     sendPhotosToView(somePhotos, direction);
   });
-  pubsub.on('recPhotosRequested', function(direction){
-    var someRecPhotos = getRecPhotosFrom(currentUser, photoQtyPerRender);
-    sendPhotosToView(someRecPhotos, direction);
-  });
+
+  // pubsub.on('recPhotosRequested', function(direction){
+  //   var someRecPhotos = getRecPhotosFrom(currentUser, photoQtyPerRender);
+  //   sendPhotosToView(someRecPhotos, direction);
+  // });
 
   pubsub.on('userLoggedIn', function(){
     currentUser = new User();
-    sessionStorage.setItem('loggedIn', 'true');
+    setCookie('loggedIn', 'true');
+    // localStorage.setItem('loggedIn', 'true');
     fetchPhotosFor(currentUser);
   });
 
   pubsub.on('noUserLoggedIn', function(){
-    sessionStorage.setItem('loggedIn', 'false');
+    setCookie('loggedIn', 'false');
+    // localStorage.setItem('loggedIn', 'false');
     fetchShowTopPhotos();
   });
 
@@ -115,47 +123,65 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   pubsub.on('userPhotosFetched', function(){
     pubsub.emit('photosRequested', 'append');
   });
-  pubsub.on('recPhotosFetched', function(){
-    pubsub.emit('recPhotosRequested', 'append');
-  });
+  // pubsub.on('recPhotosFetched', function(){
+  //   pubsub.emit('recPhotosRequested', 'append');
+  // });
 
 
   // USER CONTROLLER ///////////////////////////////////////
+
+  //////////////////////////////////////////////////////////
+  // cookies // NOTE: untested
+  function setCookie(key, value){
+    document.cookie = key + '=' + value;
+  }
+
+  function getCookie(key){
+    var regexStr = '/(?:(?:^|.*;\s*)' + key + '\s*\=\s*([^;]*).*$)|^.*$/';
+    return document.cookie.replace(regexStr, "$1");
+  }
+
+  function deleteCookie(key){
+    document.cookie = key + '=' +'; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  }
 
 
   //////////////////////////////////////////////////////////
   // fetching user photos from server
   function fetchPhotosFor(userObj){
-    $.getJSON(serverURL + 'photos')
-    .done(function(data){
-      // NOTE: currently server returns an array, not JSON
-      var photonImgs = [];
-      data.forEach(function(ele, i, arr){
-        photonImgs.push(new Photo(ele));
-      });
-      userObj.setPhotos(photonImgs);
-      pubsub.emit('userPhotosFetched', userObj.photos.length);
-    })
-    .fail(function(xhr, status, error){
-      console.log(status, error);
-    });
+    // first get recommended photos
     $.getJSON(serverURL + 'photos/recommended')
-    .done(function(data){
-      if (data.length === 0) {
-        console.log('fetchRecPhotos: rec array is empty');
-        return false;
-      }
-      // NOTE: currently server returns an array, not JSON
-      var photonImgs = [];
-      data.forEach(function(ele, i, arr){
-        photonImgs.push(new Photo(ele, true));
+      .done(function(data){
+        if (data.length === 0) {
+          console.log('fetchRecPhotos: rec array is empty');
+          return false;
+        }
+        // NOTE: currently server returns an array, not JSON
+        var photonImgs = [];
+        data.forEach(function(ele, i, arr){
+          photonImgs.push(new Photo(ele, true));
+        });
+        userObj.setRecPhotos(photonImgs);
+
+        // now get liked photos
+        $.getJSON(serverURL + 'photos')
+          .done(function(data){
+            // NOTE: currently server returns an array, not JSON
+            var photonImgs = [];
+            data.forEach(function(ele, i, arr){
+              photonImgs.push(new Photo(ele));
+            });
+            userObj.setPhotos(photonImgs);
+            // now render all the photos
+            pubsub.emit('userPhotosFetched', (userObj.photos.length + userObj.recPhotos.length));
+          })
+          .fail(function(xhr, status, error){
+            console.log(status, error);
+          });
+      })
+      .fail(function(xhr, status, error){
+        console.log(status, error);
       });
-      userObj.setRecPhotos(photonImgs);
-      pubsub.emit('recPhotosFetched', userObj.recPhotos.length);
-    })
-    .fail(function(xhr, status, error){
-      console.log(status, error);
-    });
   }
 
   function fetchShowTopPhotos(){
@@ -167,7 +193,7 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
         photonImgs.push(new Photo(ele));
       });
       photonImgs.sort( function() { return 0.5 - Math.random(); } );
-      var payload = photonImgs.slice(0, photoQtyPerRender);
+      var payload = photonImgs.slice(0, photoQtyPerRender / 3);
       sendPhotosToView(payload, 'append');
     })
     .fail(function(xhr, status, error){
@@ -362,6 +388,9 @@ Photon.Controller = (function(pubsub, view, User, Photo) {
   return {
     currentUser: currentUser,
     reportStates: reportStates,
-    sendPhotosToView: sendPhotosToView
+    sendPhotosToView: sendPhotosToView,
+    setCookie: setCookie,
+    getCookie: getCookie,
+    deleteCookie: deleteCookie
   };
 }(Photon.eventBus, Photon.view, Photon.User, Photon.Photo));
