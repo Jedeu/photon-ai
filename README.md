@@ -4,8 +4,8 @@ This is our final project at Lighthouse Labs. We decided to each play to our int
 ## Stack:
 Node.js + Express, Postgres
 [Raccoon](https://www.npmjs.com/package/raccoon) on Redis
-Vanilla JS + $ + ($.nested)[https://github.com/suprb/nested/]
-SCSS + (bulma)[https://github.com/jgthms/bulma]
+Vanilla JS + $ + [$.nested](https://github.com/suprb/nested/)
+SCSS + [bulma](https://github.com/jgthms/bulma)
 
 ## Instructons:
 `npm start` to start server
@@ -20,7 +20,7 @@ Content & UX first, not sacrificing beautiful photos for clinical UI. Since the 
 - retry mobile-first approach, emphasis on bandwidth and low-latency
 - learn to use asset pipeline manager to create .min.js, .min.css
 - optimise search using an index rather than 3 nested loops and early return
-- rewrite ($.nested)[https://github.com/suprb/nested/], learn about it and make it more robust
+- rewrite [$.nested](https://github.com/suprb/nested/), learn about it and make it more robust
 
 ## Uber Stretch Goals:
 - photo EXIF data search and processing (similar to flickr)
