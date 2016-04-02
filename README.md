@@ -40,3 +40,5 @@ Content & UX first, not sacrificing beautiful photos for clinical UI. Since the 
 ## Backend:
 
 ## Extension
+
+More information about the Extension can be found [here](https://github.com/Jedeu/photon-ai-extension)
