@@ -8,6 +8,7 @@ Vanilla JS + $ + [$.nested](https://github.com/suprb/nested/)
 SCSS + [bulma](https://github.com/jgthms/bulma)
 
 ## Instructons:
+`redis-server` to start the redis server
 `npm start` to start server
 
 ## Philosophy:
@@ -38,6 +39,10 @@ Content & UX first, not sacrificing beautiful photos for clinical UI. Since the 
 - some robustness of formatting and early return
 - in-house image fitting to a 5x5 grid for $.nested, crop as little as possible
 ## Backend:
+- Node.js with Express framework
+- Postgres database with Sequelize as an ORM to store user, photo, and tag information
+- Raccoon recommendation engine to generate recommendations based on similar users
+- Redis database to store recommendation information
 
 ## Extension
 
