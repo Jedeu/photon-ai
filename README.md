@@ -38,6 +38,7 @@ Content & UX first, not sacrificing beautiful photos for clinical UI. Since the 
 - custom built and calibrated touch library
 - some robustness of formatting and early return
 - in-house image fitting to a 5x5 grid for $.nested, crop as little as possible
+
 ## Backend:
 - Node.js with Express framework
 - Postgres database with Sequelize as an ORM to store user, photo, and tag information
